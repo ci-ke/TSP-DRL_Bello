@@ -1,13 +1,12 @@
 import pickle
 import os
 import argparse
-import torch
 from datetime import datetime
 
 
 def argparser():
     parser = argparse.ArgumentParser()
-    # main parts
+    # main parts: mode, batch, city_t, steps
     parser.add_argument(
         '-m',
         '--mode',
@@ -42,7 +41,7 @@ def argparser():
         help='training steps(epochs), default: 15000',
     )
 
-    # details
+    # details: embed, hidden, clip_logits, softmax_T, optim, init_min, init_max, n_glimpse, n_process, decode_type
     parser.add_argument(
         '-e', '--embed', metavar='EM', type=int, default=128, help='embedding size'
     )
@@ -110,7 +109,7 @@ def argparser():
         help='how to choose next city in actor model',
     )
 
-    # train, learning rate
+    # train, learning rate: lr, is_lr_decay, lr_decay, lr_decay_step
     parser.add_argument(
         '--lr', metavar='LR', type=float, default=1e-3, help='initial learning rate'
     )
@@ -134,7 +133,7 @@ def argparser():
         help='learning rate scheduler, decay every 5000 steps',
     )
 
-    # inference
+    # inference: act_model_path, seed, alpha
     parser.add_argument(
         '-ap', '--act_model_path', metavar='AMP', type=str, help='load actor model path'
     )
@@ -154,7 +153,7 @@ def argparser():
         help='alpha decay in active search',
     )
 
-    # path
+    # path: islogger, issaver, log_step, log_dir, model_dir, pkl_dir
     parser.add_argument(
         '--islogger', action='store_false', help='flag csv logger default true'
     )
@@ -204,8 +203,7 @@ def argparser():
 
 class Config:
     def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            self.__dict__[k] = v
+        self.__dict__.update(kwargs)
         self.dump_date = datetime.now().strftime('%m%d_%H_%M')
         self.task = '%s%d' % (self.mode, self.city_t)
         self.pkl_path = self.pkl_dir + '%s.pkl' % (self.task)
@@ -224,9 +222,9 @@ def dump_pkl(args, verbose=True, override=None):
         override = input(
             f'found the same name pkl file "{cfg.pkl_path}".\noverride this file? [y/n]:'
         )
+    if override == 'n':
+        raise RuntimeError('modify cfg.pkl_path in config.py as you like')
     with open(cfg.pkl_path, 'wb') as f:
-        if override == 'n':
-            raise RuntimeError('modify cfg.pkl_path in config.py as you like')
         pickle.dump(cfg, f)
         print('--- save pickle file in %s ---\n' % cfg.pkl_path)
         if verbose:
@@ -263,5 +261,5 @@ if __name__ == '__main__':
     dump_pkl(args)
     # cfg = load_pkl('./Pkl/test.pkl')
     # for k, v in vars(cfg).items():
-    # 	print(k, v)
-    # 	print(vars(cfg)[k])#==v
+    # print(k, v)
+    # print(vars(cfg)[k])#==v

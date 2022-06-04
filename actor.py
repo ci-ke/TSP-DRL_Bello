@@ -33,12 +33,12 @@ class PtrNet1(nn.Module):
         self.Decoder = nn.LSTM(
             input_size=cfg.embed, hidden_size=cfg.hidden, batch_first=True
         )
-        if torch.cuda.is_available():
-            self.Vec = nn.Parameter(torch.cuda.FloatTensor(cfg.embed))
-            self.Vec2 = nn.Parameter(torch.cuda.FloatTensor(cfg.embed))
-        else:
-            self.Vec = nn.Parameter(torch.FloatTensor(cfg.embed))
-            self.Vec2 = nn.Parameter(torch.FloatTensor(cfg.embed))
+        # if torch.cuda.is_available():
+        #    self.Vec = nn.Parameter(torch.cuda.FloatTensor(cfg.embed))
+        #    self.Vec2 = nn.Parameter(torch.cuda.FloatTensor(cfg.embed))
+        # else:
+        self.Vec = nn.Parameter(torch.FloatTensor(cfg.embed))
+        self.Vec2 = nn.Parameter(torch.FloatTensor(cfg.embed))
         self.W_q = nn.Linear(cfg.hidden, cfg.hidden, bias=True)
         self.W_ref = nn.Conv1d(cfg.hidden, cfg.hidden, 1, 1)
         self.W_q2 = nn.Linear(cfg.hidden, cfg.hidden, bias=True)
@@ -65,35 +65,39 @@ class PtrNet1(nn.Module):
         '''
         x = x.to(device)
         batch, city_t, _ = x.size()
-        embed_enc_inputs = self.Embedding(x)
+        embed_enc_inputs = self.Embedding(x)  # (batch, city_t, embed)
         embed = embed_enc_inputs.size(2)
         mask = torch.zeros((batch, city_t), device=device)
         enc_h, (h, c) = self.Encoder(embed_enc_inputs, None)
         ref = enc_h
         pi_list, log_ps = [], []
-        dec_input = self.dec_input.unsqueeze(0).repeat(batch, 1).unsqueeze(1).to(device)
-        for i in range(city_t):
+        dec_input = (
+            self.dec_input.unsqueeze(0).repeat(batch, 1).unsqueeze(1).to(device)
+        )  # (batch, 1, embed)
+        for _ in range(city_t):
             _, (h, c) = self.Decoder(dec_input, (h, c))
             query = h.squeeze(0)
-            for i in range(self.n_glimpse):
+            for _ in range(self.n_glimpse):
                 query = self.glimpse(query, ref, mask)
             logits = self.pointer(query, ref, mask)
-            log_p = torch.log_softmax(logits, dim=-1)
-            next_node = self.city_selecter(log_p)
+            log_p = torch.log_softmax(logits, dim=-1)  # (batch, city_t)
+            next_node = self.city_selecter(log_p)  # (batch,)
             dec_input = torch.gather(
                 input=embed_enc_inputs,
                 dim=1,
-                index=next_node.unsqueeze(-1).unsqueeze(-1).repeat(1, 1, embed),
-            )
+                index=next_node.unsqueeze(-1)
+                .unsqueeze(-1)
+                .repeat(1, 1, embed),  # (batch, 1, embed)
+            )  # (batch, 1, embed)
 
             pi_list.append(next_node)
             log_ps.append(log_p)
             mask += torch.zeros((batch, city_t), device=device).scatter_(
                 dim=1, index=next_node.unsqueeze(1), value=1
-            )
+            )  # index: (batch, 1)
 
-        pi = torch.stack(pi_list, dim=1)
-        ll = self.get_log_likelihood(torch.stack(log_ps, 1), pi)
+        pi = torch.stack(pi_list, dim=1)  # (batch, city_t)
+        ll = self.get_log_likelihood(torch.stack(log_ps, 1), pi)  # (batch,)
         return pi, ll
 
     def glimpse(self, query, ref, mask, inf=1e8):
@@ -143,20 +147,22 @@ class PtrNet1(nn.Module):
 
     def get_log_likelihood(self, _log_p, pi):
         """args:
-        _log_p: (batch, city_t, city_t)
+        _log_p: (batch, city_t, city_t) # arg1 is step
         pi: (batch, city_t), predicted tour
         return: (batch)
         """
-        log_p = torch.gather(input=_log_p, dim=2, index=pi[:, :, None])
+        log_p = torch.gather(
+            input=_log_p, dim=2, index=pi[:, :, None]
+        )  # (batch, city_t, 1)
         return torch.sum(log_p.squeeze(-1), 1)
 
 
 if __name__ == '__main__':
     cfg = load_pkl(pkl_parser().path)
-    model = PtrNet1(cfg)
+    model = PtrNet1(cfg).cuda()
     inputs = torch.randn(3, 20, 2)
-    pi, ll = model(inputs, device='cpu')
-    print('pi:', pi.size(), pi)
+    pi, ll = model(inputs, device='cuda:0')
+    print('pi:', pi.size(), pi, sep='\n')
     print('log_likelihood:', ll.size(), ll)
 
     cnt = 0
@@ -172,5 +178,5 @@ if __name__ == '__main__':
     env = Env_tsp(cfg)
     cost = env.stack_l(inputs, pi)
     print('cost:', cost.size(), cost)
-    cost = env.stack_l_fast(inputs, pi)
+    cost = env.stack_l_fast(inputs, pi.cpu())
     print('cost:', cost.size(), cost)

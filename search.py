@@ -74,9 +74,9 @@ def active_search(cfg, env, test_input, log_path=None):
         act_optim.zero_grad()
         act_loss = torch.mean(adv * neg_log)
         '''
-		adv(batch) = l_batch(batch) - baseline(batch)
-		mean(adv(batch) * neg_log(batch)) -> act_loss(scalar) 
-		'''
+        adv(batch) = l_batch(batch) - baseline(batch)
+        mean(adv(batch) * neg_log(batch)) -> act_loss(scalar) 
+        '''
         act_loss.backward()
         nn.utils.clip_grad_norm_(act_model.parameters(), max_norm=1.0, norm_type=2)
         act_optim.step()

@@ -78,6 +78,7 @@ class Env_tsp:
         d: (batch, city_t, 2)
         """
         d = torch.gather(input=inputs, dim=1, index=tours[:, :, None].repeat(1, 1, 2))
+        # index: (batch, city_t, 2)
         return torch.sum((d[:, 1:] - d[:, :-1]).norm(p=2, dim=2), dim=1) + (
             d[:, 0] - d[:, -1]
         ).norm(
@@ -90,7 +91,7 @@ class Env_tsp:
         print(tour)
         plt.figure()
         plt.plot(nodes[:, 0], nodes[:, 1], 'yo', markersize=16)
-        np_tour = tour[:].cpu().detach()
+        np_tour = tour.cpu().detach()
         np_fin_tour = [tour[-1].item(), tour[0].item()]
         plt.plot(nodes[np_tour, 0], nodes[np_tour, 1], 'k-', linewidth=0.7)
         plt.plot(nodes[np_fin_tour, 0], nodes[np_fin_tour, 1], 'k-', linewidth=0.7)
@@ -112,9 +113,9 @@ class Env_tsp:
 
     def back_tours(self, pred_shuffle_tours, shuffle_inputs, test_inputs, device):
         '''
-        pred_shuffle_tours:(batch,city_t)
-        shuffle_inputs:(batch,city_t_t,2)
-        test_inputs:(batch,city_t,2)
+        pred_shuffle_tours:(batch,city_t): elements correspond to permutation of shuffle_inputs
+        shuffle_inputs:(batch,city_t,2)
+        test_inputs:(batch,city_t,2): original permutation
         return pred_tours:(batch,city_t)
         '''
         pred_tours = []
@@ -151,18 +152,21 @@ class Env_tsp:
             city = np.random.randint(self.city_t)
             if city not in tour:
                 tour.append(city)
-        tour = torch.from_numpy(np.array(tour))
+        tour = torch.from_numpy(np.array(tour)).long()
         return tour
 
     def get_optimal_tour(self, nodes):
         # dynamic programming algorithm, calculate lengths between all nodes
-        points = nodes.numpy()
+        # https://blog.csdn.net/qq_39559641/article/details/101209534
+        points = nodes.cpu().numpy()
         all_distances = [[get_2city_distance(x, y) for y in points] for x in points]
         # initial value - just distance from 0 to every other point + keep the track of edges
         A = {
             (frozenset([0, idx + 1]), idx + 1): (dist, [0, idx + 1])
             for idx, dist in enumerate(all_distances[0][1:])
         }
+        # key(state): ({nodes need to visit before return to node 0}, start node)
+        # value: (distance, [reversed visit sequence])
         cnt = len(points)
         for m in range(2, cnt):
             B = {}
@@ -182,5 +186,15 @@ class Env_tsp:
                     )  # this will use 0th index of tuple for ordering, the same as if key=itemgetter(0) used
             A = B
         res = min([(A[d][0] + all_distances[0][d[1]], A[d][1]) for d in iter(A)])
-        tour = torch.from_numpy(np.array(res[1]))
+        tour = torch.from_numpy(np.array(res[1])).long()
         return tour
+
+
+if __name__ == '__main__':
+    from types import SimpleNamespace
+
+    test_input = torch.tensor([(0, 0), (1, 0), (4, 0), (0, -3)])
+    cfg = SimpleNamespace(batch=1, city_t=4)
+    env = Env_tsp(cfg)
+    optimal_tour = env.get_optimal_tour(test_input)
+    env.show(test_input, optimal_tour)

@@ -11,13 +11,13 @@ class PtrNet2(nn.Module):
         self.Encoder = nn.LSTM(
             input_size=cfg.embed, hidden_size=cfg.hidden, batch_first=True
         )
-        self.Decoder = nn.LSTM(
-            input_size=cfg.embed, hidden_size=cfg.hidden, batch_first=True
-        )
-        if torch.cuda.is_available():
-            self.Vec = nn.Parameter(torch.cuda.FloatTensor(cfg.embed))
-        else:
-            self.Vec = nn.Parameter(torch.FloatTensor(cfg.embed))
+        # self.Decoder = nn.LSTM(
+        #    input_size=cfg.embed, hidden_size=cfg.hidden, batch_first=True
+        # )
+        # if torch.cuda.is_available():
+        #    self.Vec = nn.Parameter(torch.cuda.FloatTensor(cfg.embed))
+        # else:
+        self.Vec = nn.Parameter(torch.FloatTensor(cfg.embed))
         self.W_q = nn.Linear(cfg.hidden, cfg.hidden, bias=True)
         self.W_ref = nn.Conv1d(cfg.hidden, cfg.hidden, 1, 1)
         # self.dec_input = nn.Parameter(torch.FloatTensor(cfg.embed))
@@ -43,30 +43,30 @@ class PtrNet2(nn.Module):
         '''
         x = x.to(device)
         batch, city_t, xy = x.size()
-        embed_enc_inputs = self.Embedding(x)
+        embed_enc_inputs = self.Embedding(x)  # (batch, city_t, embed)
         embed = embed_enc_inputs.size(2)
         enc_h, (h, c) = self.Encoder(embed_enc_inputs, None)
         ref = enc_h
         # ~ query = h.permute(1,0,2).to(device)# query = self.dec_input.unsqueeze(0).repeat(batch,1).unsqueeze(1).to(device)
-        query = h[-1]
+        query = h[-1]  # (batch, hidden)
         # ~ process_h, process_c = [torch.zeros((1, batch, embed), device = device) for _ in range(2)]
-        for i in range(self.n_process):
+        for _ in range(self.n_process):
             # ~ _, (process_h, process_c) = self.Decoder(query, (process_h, process_c))
             # ~ _, (h, c) = self.Decoder(query, (h, c))
             # ~ query = query.squeeze(1)
-            for i in range(self.n_glimpse):
+            for _ in range(self.n_glimpse):
                 query = self.glimpse(query, ref)
                 # ~ query = query.unsqueeze(1)
-        '''	
-		- page 5/15 in paper
-		critic model architecture detail is out there, "Critic’s architecture for TSP"
-		- page 14/15 in paper
-		glimpsing more than once with the same parameters 
-		made the model less likely to learn and barely improved the results 
-		
-		query(batch,hidden)*FC(hidden,hidden)*FC(hidden,1) -> pred_l(batch,1) ->pred_l(batch)
-		'''
-        pred_l = self.final2FC(query).squeeze(-1).squeeze(-1)
+        '''
+        - page 5/15 in paper
+        critic model architecture detail is out there, "Critic’s architecture for TSP"
+        - page 14/15 in paper
+        glimpsing more than once with the same parameters 
+        made the model less likely to learn and barely improved the results 
+        
+        query(batch,hidden)*FC(hidden,hidden)*FC(hidden,1) -> pred_l(batch,1) ->pred_l(batch)
+        '''
+        pred_l = self.final2FC(query).squeeze(-1)  # (batch,)
         return pred_l
 
     def glimpse(self, query, ref, infinity=1e8):

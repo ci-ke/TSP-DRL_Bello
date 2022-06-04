@@ -1,5 +1,6 @@
-import torch
 from time import time
+
+from torch import tensor
 from env import Env_tsp
 from config import Config, load_pkl, pkl_parser
 from search import sampling, active_search
@@ -29,15 +30,15 @@ def search_tour(cfg, env):
     print('%dmin %1.2fsec\n' % ((t2 - t1) // 60, (t2 - t1) % 60))
     env.show(test_input, pred_tour)
 
-    """
-	# optimal solution, it takes time
-	print('generate optimal solution ...')
-	t1 = time()
-	optimal_tour = env.get_optimal_tour(test_input)
-	env.show(test_input, optimal_tour)
-	t2 = time()
-	print('%dmin %1.2fsec\n'%((t2-t1)//60, (t2-t1)%60))
-	"""
+    '''
+    # optimal solution, it takes time
+    print('generate optimal solution ...')
+    t1 = time()
+    optimal_tour = env.get_optimal_tour(test_input)
+    t2 = time()
+    print('%dmin %1.2fsec\n' % ((t2 - t1) // 60, (t2 - t1) % 60))
+    env.show(test_input, optimal_tour)
+    '''
 
 
 if __name__ == '__main__':
