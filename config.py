@@ -4,7 +4,7 @@ import argparse
 from datetime import datetime
 
 
-def argparser():
+def argparser() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     # main parts: mode, batch, city_t, steps
     parser.add_argument(
@@ -202,7 +202,7 @@ def argparser():
 
 
 class Config:
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         self.__dict__.update(kwargs)
         self.dump_date = datetime.now().strftime('%m%d_%H_%M')
         self.task = '%s%d' % (self.mode, self.city_t)
@@ -212,11 +212,13 @@ class Config:
             os.makedirs(x, exist_ok=True)
 
 
-def print_cfg(cfg):
+def print_cfg(cfg: Config) -> None:
     print(''.join('%s: %s\n' % item for item in vars(cfg).items()))
 
 
-def dump_pkl(args, verbose=True, override=None):
+def dump_pkl(
+    args: argparse.Namespace, verbose: bool = True, override: str = None
+) -> None:
     cfg = Config(**vars(args))
     if os.path.exists(cfg.pkl_path):
         override = input(
@@ -231,7 +233,7 @@ def dump_pkl(args, verbose=True, override=None):
             print_cfg(cfg)
 
 
-def load_pkl(pkl_path, verbose=True):
+def load_pkl(pkl_path: str, verbose: bool = True) -> Config:
     if not os.path.isfile(pkl_path):
         raise FileNotFoundError('pkl_path')
     with open(pkl_path, 'rb') as f:
@@ -242,7 +244,7 @@ def load_pkl(pkl_path, verbose=True):
     return cfg
 
 
-def pkl_parser():
+def pkl_parser() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-p',

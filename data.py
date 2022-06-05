@@ -7,13 +7,13 @@ from config import Config, load_pkl, pkl_parser
 
 
 class Generator(Dataset):
-    def __init__(self, cfg, env):
+    def __init__(self, cfg: Config, env: Env_tsp) -> None:
         self.data = env.get_batch_nodes(cfg.n_samples)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> torch.Tensor:
         return self.data[idx]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.data.size(0)
 
 

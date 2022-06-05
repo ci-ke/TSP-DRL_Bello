@@ -1,12 +1,11 @@
 from time import time
 
-from torch import tensor
 from env import Env_tsp
 from config import Config, load_pkl, pkl_parser
 from search import sampling, active_search
 
 
-def search_tour(cfg, env):
+def search_tour(cfg: Config, env: Env_tsp) -> None:
     test_input = env.get_nodes(cfg.seed)
 
     # random

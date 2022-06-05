@@ -4,10 +4,13 @@ import torch.optim as optim
 import os
 from tqdm import tqdm
 from datetime import datetime
+
 from actor import PtrNet1
+from config import Config
+from env import Env_tsp
 
 
-def sampling(cfg, env, test_input):
+def sampling(cfg, env: Config, test_input: torch.Tensor) -> torch.Tensor:
     test_inputs = test_input.repeat(cfg.batch, 1, 1)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     act_model = PtrNet1(cfg)
@@ -23,7 +26,9 @@ def sampling(cfg, env, test_input):
     return best_tour
 
 
-def active_search(cfg, env, test_input, log_path=None):
+def active_search(
+    cfg: Config, env: Env_tsp, test_input: torch.Tensor, log_path: str = None
+) -> torch.Tensor:
     '''
     active search updates model parameters even during inference on a single input
     test input:(city_t,xy)

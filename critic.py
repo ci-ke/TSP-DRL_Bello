@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from config import Config, load_pkl, pkl_parser
 
 
 class PtrNet2(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg: Config) -> None:
         super().__init__()
         self.Embedding = nn.Linear(2, cfg.embed, bias=False)
         self.Encoder = nn.LSTM(
@@ -30,11 +31,13 @@ class PtrNet2(nn.Module):
         self.n_glimpse = cfg.n_glimpse
         self.n_process = cfg.n_process
 
-    def _initialize_weights(self, init_min=-0.08, init_max=0.08):
+    def _initialize_weights(
+        self, init_min: float = -0.08, init_max: float = 0.08
+    ) -> None:
         for param in self.parameters():
             nn.init.uniform_(param.data, init_min, init_max)
 
-    def forward(self, x, device):
+    def forward(self, x: torch.Tensor, device: str) -> torch.Tensor:
         '''x: (batch, city_t, 2)
         enc_h: (batch, city_t, embed)
         query(Decoder input): (batch, 1, embed)
@@ -69,7 +72,9 @@ class PtrNet2(nn.Module):
         pred_l = self.final2FC(query).squeeze(-1)  # (batch,)
         return pred_l
 
-    def glimpse(self, query, ref, infinity=1e8):
+    def glimpse(
+        self, query: torch.Tensor, ref: torch.Tensor, infinity: float = 1e8
+    ) -> torch.Tensor:
         """Args:
         query: the hidden state of the decoder at the current
         (batch, 128)

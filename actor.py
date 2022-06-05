@@ -7,24 +7,24 @@ from env import Env_tsp
 
 
 class Greedy(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def forward(self, log_p):
+    def forward(self, log_p: torch.Tensor) -> torch.Tensor:
         return torch.argmax(log_p, dim=1).long()
 
 
 class Categorical(nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
-    def forward(self, log_p):
+    def forward(self, log_p: torch.Tensor) -> torch.Tensor:
         return torch.multinomial(log_p.exp(), 1).long().squeeze(1)
 
 
 # https://github.com/higgsfield/np-hard-deep-reinforcement-learning/blob/master/Neural%20Combinatorial%20Optimization.ipynb
 class PtrNet1(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg: Config) -> None:
         super().__init__()
         self.Embedding = nn.Linear(2, cfg.embed, bias=False)
         self.Encoder = nn.LSTM(
@@ -52,11 +52,13 @@ class PtrNet1(nn.Module):
             cfg.decode_type, None
         )
 
-    def _initialize_weights(self, init_min=-0.08, init_max=0.08):
+    def _initialize_weights(
+        self, init_min: float = -0.08, init_max: float = 0.08
+    ) -> None:
         for param in self.parameters():
             nn.init.uniform_(param.data, init_min, init_max)
 
-    def forward(self, x, device):
+    def forward(self, x: torch.Tensor, device: str) -> torch.Tensor:
         '''x: (batch, city_t, 2)
         enc_h: (batch, city_t, embed)
         dec_input: (batch, 1, embed)
@@ -100,7 +102,13 @@ class PtrNet1(nn.Module):
         ll = self.get_log_likelihood(torch.stack(log_ps, 1), pi)  # (batch,)
         return pi, ll
 
-    def glimpse(self, query, ref, mask, inf=1e8):
+    def glimpse(
+        self,
+        query: torch.Tensor,
+        ref: torch.Tensor,
+        mask: torch.Tensor,
+        inf: float = 1e8,
+    ) -> torch.Tensor:
         """-ref about torch.bmm, torch.matmul and so on
         https://qiita.com/tand826/items/9e1b6a4de785097fe6a5
         https://qiita.com/shinochin/items/aa420e50d847453cc296
@@ -126,7 +134,13 @@ class PtrNet1(nn.Module):
         # u2: (batch, 128, city_t) * a: (batch, city_t, 1) => d: (batch, 128)
         return d
 
-    def pointer(self, query, ref, mask, inf=1e8):
+    def pointer(
+        self,
+        query: torch.Tensor,
+        ref: torch.Tensor,
+        mask: torch.Tensor,
+        inf: float = 1e8,
+    ) -> torch.Tensor:
         """Args:
         query: the hidden state of the decoder at the current
         (batch, 128)
@@ -145,7 +159,9 @@ class PtrNet1(nn.Module):
         u = u - inf * mask
         return u
 
-    def get_log_likelihood(self, _log_p, pi):
+    def get_log_likelihood(
+        self, _log_p: torch.Tensor, pi: torch.Tensor
+    ) -> torch.Tensor:
         """args:
         _log_p: (batch, city_t, city_t) # arg1 is step
         pi: (batch, city_t), predicted tour

@@ -15,7 +15,7 @@ from data import Generator
 torch.backends.cudnn.benchmark = True
 
 
-def train_model(cfg, env, log_path=None):
+def train_model(cfg: Config, env: Env_tsp, log_path: str = None) -> None:
     date = datetime.now().strftime('%m%d_%H_%M')
     if cfg.islogger:
         param_path = cfg.log_dir + '%s_%s_param.csv' % (

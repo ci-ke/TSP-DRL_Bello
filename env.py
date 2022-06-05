@@ -3,9 +3,14 @@ import numpy as np
 import math
 import itertools
 import matplotlib.pyplot as plt
+from typing import Union
+
+from config import Config
 
 
-def get_2city_distance(n1, n2):
+def get_2city_distance(
+    n1: Union[torch.Tensor, list, np.ndarray], n2: Union[torch.Tensor, list, np.ndarray]
+) -> Union[torch.Tensor, float]:
     x1, y1, x2, y2 = n1[0], n1[1], n2[0], n2[1]
     if isinstance(n1, torch.Tensor):
         return torch.sqrt((x2 - x1).pow(2) + (y2 - y1).pow(2))
@@ -16,7 +21,7 @@ def get_2city_distance(n1, n2):
 
 
 class Env_tsp:
-    def __init__(self, cfg):
+    def __init__(self, cfg: Config) -> None:
         '''
         nodes(cities) : contains nodes and their 2 dimensional coordinates
         [city_t, 2] = [3,2] dimension array e.g. [[0.5,0.7],[0.2,0.3],[0.4,0.1]]
@@ -24,7 +29,7 @@ class Env_tsp:
         self.batch = cfg.batch
         self.city_t = cfg.city_t
 
-    def get_nodes(self, seed=None):
+    def get_nodes(self, seed: int = None) -> torch.Tensor:
         '''
         return nodes:(city_t,2)
         '''
@@ -33,7 +38,7 @@ class Env_tsp:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         return torch.rand((self.city_t, 2), device=device)
 
-    def stack_nodes(self):
+    def stack_nodes(self) -> torch.Tensor:
         '''
         nodes:(city_t,2)
         return inputs:(batch,city_t,2)
@@ -42,7 +47,7 @@ class Env_tsp:
         inputs = torch.stack(list, dim=0)
         return inputs
 
-    def get_batch_nodes(self, n_samples, seed=None):
+    def get_batch_nodes(self, n_samples: int, seed: int = None) -> torch.Tensor:
         '''
         return nodes:(batch,city_t,2)
         '''
@@ -51,7 +56,7 @@ class Env_tsp:
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         return torch.rand((n_samples, self.city_t, 2), device=device)
 
-    def stack_random_tours(self):
+    def stack_random_tours(self) -> torch.Tensor:
         '''
         tour:(city_t)
         return tours:(batch,city_t)
@@ -60,7 +65,7 @@ class Env_tsp:
         tours = torch.stack(list, dim=0)
         return tours
 
-    def stack_l(self, inputs, tours):
+    def stack_l(self, inputs: torch.Tensor, tours: torch.Tensor) -> torch.Tensor:
         '''
         inputs:(batch,city_t,2)
         tours:(batch,city_t)
@@ -70,7 +75,7 @@ class Env_tsp:
         l_batch = torch.stack(list, dim=0)
         return l_batch
 
-    def stack_l_fast(self, inputs, tours):
+    def stack_l_fast(self, inputs: torch.Tensor, tours: torch.Tensor) -> torch.Tensor:
         """
         *** this function is faster version of stack_l! ***
         inputs: (batch, city_t, 2), Coordinates of nodes
@@ -85,7 +90,7 @@ class Env_tsp:
             p=2, dim=1
         )  # distance from last node to first selected node)
 
-    def show(self, nodes, tour):
+    def show(self, nodes: torch.Tensor, tour: torch.Tensor) -> None:
         nodes = nodes.cpu().detach()
         print('distance:{:.3f}'.format(self.get_tour_distance(nodes, tour)))
         print(tour)
@@ -99,7 +104,7 @@ class Env_tsp:
             plt.text(nodes[i, 0], nodes[i, 1], str(i), size=10, color='b')
         plt.show()
 
-    def shuffle(self, inputs):
+    def shuffle(self, inputs: torch.Tensor) -> torch.Tensor:
         '''
         shuffle nodes order with a set of xy coordinate
         inputs:(batch,city_t,2)
@@ -111,7 +116,13 @@ class Env_tsp:
             shuffle_inputs[i, :, :] = inputs[i, perm, :]
         return shuffle_inputs
 
-    def back_tours(self, pred_shuffle_tours, shuffle_inputs, test_inputs, device):
+    def back_tours(
+        self,
+        pred_shuffle_tours: torch.Tensor,
+        shuffle_inputs: torch.Tensor,
+        test_inputs: torch.Tensor,
+        device: str,
+    ) -> torch.Tensor:
         '''
         pred_shuffle_tours:(batch,city_t): elements correspond to permutation of shuffle_inputs
         shuffle_inputs:(batch,city_t,2)
@@ -132,7 +143,9 @@ class Env_tsp:
         pred_tours = torch.stack(pred_tours, dim=0)
         return pred_tours
 
-    def get_tour_distance(self, nodes, tour):
+    def get_tour_distance(
+        self, nodes: torch.Tensor, tour: torch.Tensor
+    ) -> torch.Tensor:
         '''
         nodes:(city_t,2), tour:(city_t)
         l(= total distance) = l(0-1) + l(1-2) + l(2-3) + ... + l(18-19) + l(19-0) @20%20->0
@@ -143,7 +156,7 @@ class Env_tsp:
             l += get_2city_distance(nodes[tour[i]], nodes[tour[(i + 1) % self.city_t]])
         return l
 
-    def get_random_tour(self):
+    def get_random_tour(self) -> torch.Tensor:
         '''
         return tour:(city_t)
         '''
@@ -155,7 +168,7 @@ class Env_tsp:
         tour = torch.from_numpy(np.array(tour)).long()
         return tour
 
-    def get_optimal_tour(self, nodes):
+    def get_optimal_tour(self, nodes: torch.Tensor) -> torch.Tensor:
         # dynamic programming algorithm to solve TSP
         # https://blog.csdn.net/qq_39559641/article/details/101209534
         points = nodes.cpu().numpy()
