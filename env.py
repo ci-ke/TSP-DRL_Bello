@@ -156,37 +156,38 @@ class Env_tsp:
         return tour
 
     def get_optimal_tour(self, nodes):
-        # dynamic programming algorithm, calculate lengths between all nodes
+        # dynamic programming algorithm to solve TSP
         # https://blog.csdn.net/qq_39559641/article/details/101209534
         points = nodes.cpu().numpy()
-        all_distances = [[get_2city_distance(x, y) for y in points] for x in points]
-        # initial value - just distance from 0 to every other point + keep the track of edges
+        all_distances = np.array(
+            [[get_2city_distance(x, y) for y in points] for x in points]
+        )
+        # initial value - just distance from every other point to 0 + keep the track of tour
         A = {
-            (frozenset([0, idx + 1]), idx + 1): (dist, [0, idx + 1])
-            for idx, dist in enumerate(all_distances[0][1:])
+            (idx, frozenset()): (dist, [idx])
+            for idx, dist in enumerate(all_distances[1:, 0], start=1)
         }
-        # key(state): ({nodes need to visit before return to node 0}, start node)
-        # value: (distance, [reversed visit sequence])
-        cnt = len(points)
+        # key(state): (start node, {nodes need to visit before return to node 0})
+        # value: (distance, [visit sequence])
+        cnt = all_distances.shape[0]
         for m in range(2, cnt):
             B = {}
-            for S in [
-                frozenset(C) | {0} for C in itertools.combinations(range(1, cnt), m)
-            ]:
-                for j in S - {0}:
-                    B[(S, j)] = min(
-                        [
-                            (
-                                A[(S - {j}, k)][0] + all_distances[k][j],
-                                A[(S - {j}, k)][1] + [j],
-                            )
-                            for k in S
-                            if k != 0 and k != j
-                        ]
+            for S in (frozenset(C) for C in itertools.combinations(range(1, cnt), m)):
+                for j in S:
+                    R = S - {j}
+                    B[(j, R)] = min(
+                        (
+                            all_distances[j, k] + A[(k, R - {k})][0],
+                            [j] + A[(k, R - {k})][1],
+                        )
+                        for k in R
                     )  # this will use 0th index of tuple for ordering, the same as if key=itemgetter(0) used
             A = B
-        res = min([(A[d][0] + all_distances[0][d[1]], A[d][1]) for d in iter(A)])
-        tour = torch.from_numpy(np.array(res[1])).long()
+        res = min(
+            (all_distances[0, node] + dist, [0] + seq)
+            for (node, _), (dist, seq) in A.items()
+        )
+        tour = torch.tensor(res[1]).long()
         return tour
 
 
