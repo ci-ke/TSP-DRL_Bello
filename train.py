@@ -93,7 +93,7 @@ def train_model(cfg: Config, env: Env_tsp, log_path: str = None) -> None:
             t2 = time()
             if cfg.mode == 'train':
                 print(
-                    'step:%d/%d, actic loss:%1.3f, critic loss:%1.3f, L:%1.3f, %dmin%dsec'
+                    'step:%d/%d, actor loss:%1.3f, critic loss:%1.3f, L:%1.3f, %dmin%dsec'
                     % (
                         i,
                         cfg.steps,

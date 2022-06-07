@@ -65,7 +65,13 @@ def argparser() -> argparse.Namespace:
         help='might improve exploration; softmax temperature default 1.0 but 2.0, 2.2 and 1.5 might yield better results',
     )
     parser.add_argument(
-        '-o', '--optim', metavar='O', type=str, default='Adam', help='torch optimizer'
+        '-o',
+        '--optim',
+        metavar='O',
+        type=str,
+        default='Adam',
+        choices=['Adam'],
+        help='torch optimizer',
     )
     parser.add_argument(
         '-minv',

@@ -10,7 +10,7 @@ from config import Config
 from env import Env_tsp
 
 
-def sampling(cfg, env: Config, test_input: torch.Tensor) -> torch.Tensor:
+def sampling(cfg: Config, env: Env_tsp, test_input: torch.Tensor) -> torch.Tensor:
     test_inputs = test_input.repeat(cfg.batch, 1, 1)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     act_model = PtrNet1(cfg)

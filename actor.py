@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Tuple
 
 from config import Config, load_pkl, pkl_parser
 from env import Env_tsp
@@ -58,7 +59,9 @@ class PtrNet1(nn.Module):
         for param in self.parameters():
             nn.init.uniform_(param.data, init_min, init_max)
 
-    def forward(self, x: torch.Tensor, device: str) -> torch.Tensor:
+    def forward(
+        self, x: torch.Tensor, device: str
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         '''x: (batch, city_t, 2)
         enc_h: (batch, city_t, embed)
         dec_input: (batch, 1, embed)

@@ -1,4 +1,4 @@
-step,actic loss,critic loss,average distance,time
+step,actor loss,critic loss,average distance,time
 10,-435.9835,107.7158,10.4426,0min5sec
 20,-365.6867,83.2985,10.4262,0min5sec
 30,-217.5953,58.8234,10.4142,0min5sec
