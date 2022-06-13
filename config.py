@@ -208,6 +208,35 @@ def argparser() -> argparse.Namespace:
 
 
 class Config:
+    mode: str
+    batch: int
+    city_t: int
+    steps: int
+    embed: int
+    hidden: int
+    clip_logits: int
+    softmax_T: float
+    optim: str
+    init_min: float
+    init_max: float
+    n_glimpse: int
+    n_process: int
+    decode_type: str
+    lr: float
+    is_lr_decay: bool
+    lr_decay: float
+    lr_decay_step: int
+    act_model_path: str
+    seed: int
+    alpha: float
+    islogger: bool
+    issaver: bool
+    log_step: int
+    log_dir: str
+    model_dir: str
+    pkl_dir: str
+    cuda_dv: str
+
     def __init__(self, **kwargs) -> None:
         self.__dict__.update(kwargs)
         self.dump_date = datetime.now().strftime('%m%d_%H_%M')

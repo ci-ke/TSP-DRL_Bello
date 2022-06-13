@@ -3,19 +3,19 @@ import numpy as np
 import math
 import itertools
 import matplotlib.pyplot as plt
-from typing import Union
+from typing import Any, Dict, List, Tuple, Union
 
 from config import Config
 
 
 def get_2city_distance(
     n1: Union[torch.Tensor, list, np.ndarray], n2: Union[torch.Tensor, list, np.ndarray]
-) -> Union[torch.Tensor, float]:
+) -> torch.Tensor:
     x1, y1, x2, y2 = n1[0], n1[1], n2[0], n2[1]
     if isinstance(n1, torch.Tensor):
         return torch.sqrt((x2 - x1).pow(2) + (y2 - y1).pow(2))
     elif isinstance(n1, (list, np.ndarray)):
-        return math.sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2))
+        return torch.tensor(math.sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2)))
     else:
         raise TypeError
 
@@ -121,7 +121,7 @@ class Env_tsp:
         pred_shuffle_tours: torch.Tensor,
         shuffle_inputs: torch.Tensor,
         test_inputs: torch.Tensor,
-        device: str,
+        device: torch.device,
     ) -> torch.Tensor:
         '''
         pred_shuffle_tours:(batch,city_t): elements correspond to permutation of shuffle_inputs
@@ -140,8 +140,8 @@ class Env_tsp:
                         if len(pred_tour) == self.city_t:
                             pred_tours.append(torch.stack(pred_tour, dim=0))
                         break
-        pred_tours = torch.stack(pred_tours, dim=0)
-        return pred_tours
+        pred_tours_tensor = torch.stack(pred_tours, dim=0)
+        return pred_tours_tensor
 
     def get_tour_distance(
         self, nodes: torch.Tensor, tour: torch.Tensor
@@ -151,7 +151,7 @@ class Env_tsp:
         l(= total distance) = l(0-1) + l(1-2) + l(2-3) + ... + l(18-19) + l(19-0) @20%20->0
         return l:(1)
         '''
-        l = 0
+        l = torch.tensor(0.0)
         for i in range(self.city_t):
             l += get_2city_distance(nodes[tour[i]], nodes[tour[(i + 1) % self.city_t]])
         return l
@@ -160,13 +160,13 @@ class Env_tsp:
         '''
         return tour:(city_t)
         '''
-        tour = []
+        tour: List[int] = []
         while set(tour) != set(range(self.city_t)):
             city = np.random.randint(self.city_t)
             if city not in tour:
                 tour.append(city)
-        tour = torch.from_numpy(np.array(tour)).long()
-        return tour
+        tour_tensor = torch.from_numpy(np.array(tour)).long()
+        return tour_tensor
 
     def get_optimal_tour(self, nodes: torch.Tensor) -> torch.Tensor:
         # dynamic programming algorithm to solve TSP
@@ -175,8 +175,8 @@ class Env_tsp:
         all_distances = np.array(
             [[get_2city_distance(x, y) for y in points] for x in points]
         )
-        # initial value - just distance from every other point to 0 + keep the track of tour
-        A = {
+        # initial value - just distance from every other point to node 0 + keep the track of tour
+        A: Dict[Tuple[int, frozenset], Tuple[np.float32, List[int]]] = {
             (idx, frozenset()): (dist, [idx])
             for idx, dist in enumerate(all_distances[1:, 0], start=1)
         }
@@ -208,7 +208,7 @@ if __name__ == '__main__':
     from types import SimpleNamespace
 
     test_input = torch.tensor([(0, 0), (1, 0), (4, 0), (0, -3)])
-    cfg = SimpleNamespace(batch=1, city_t=4)
+    cfg: Any = SimpleNamespace(batch=1, city_t=4)
     env = Env_tsp(cfg)
     optimal_tour = env.get_optimal_tour(test_input)
     env.show(test_input, optimal_tour)

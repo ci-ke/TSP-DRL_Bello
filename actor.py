@@ -49,9 +49,9 @@ class PtrNet1(nn.Module):
         self.clip_logits = cfg.clip_logits
         self.softmax_T = cfg.softmax_T
         self.n_glimpse = cfg.n_glimpse
-        self.city_selecter = {'greedy': Greedy(), 'sampling': Categorical()}.get(
-            cfg.decode_type, None
-        )
+        self.city_selecter = {'greedy': Greedy(), 'sampling': Categorical()}[
+            cfg.decode_type
+        ]
 
     def _initialize_weights(
         self, init_min: float = -0.08, init_max: float = 0.08
